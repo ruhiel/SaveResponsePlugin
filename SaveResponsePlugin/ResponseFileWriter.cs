@@ -9,6 +9,7 @@ using System.Reactive.Subjects;
 using Grabacr07.KanColleWrapper;
 using Nekoxy;
 using Livet;
+using System.Text.RegularExpressions;
 
 namespace SaveResponsePlugin
 {
@@ -64,7 +65,16 @@ namespace SaveResponsePlugin
             {
                 var dir = Directory.GetParent(filePath);
                 if (!dir.Exists) dir.Create();
-                File.WriteAllBytes(filePath, session.Response.Body);
+                String text = System.Text.Encoding.GetEncoding("shift_jis").GetString(session.Response.Body);
+                string result = Regex.Replace(text, "(?<esc>.u)(?<code>[0-9a-f]{4})", delegate (Match match)
+                {
+                    Group codeGroup = match.Groups["code"];
+                    int charCode16 = Convert.ToInt32(codeGroup.Value, 16);
+                    char c = Convert.ToChar(charCode16);
+                    return c.ToString();
+                }).Replace("svdata=", "");
+
+                File.WriteAllText(filePath, new JSonPresentationFormatter().Format(result));
             }
         }
     }
